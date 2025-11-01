@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bér-napló – időtartam megadással (v32)</title>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --panel:#0b1222;
+      --muted:#94a3b8;
+      --fg:#e2e8f0;
+      --accent:#60a5fa;
+      --accent-2:#34d399;
+      --danger:#ef4444;
+      --card:#0f1a32;
+      --border:#1f2a44;
+      --chip:#1e293b;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background: radial-gradient(1200px 800px at 70% -10%, #0b1222 0%, #0a1020 35%, #091024 60%, #0f172a 100%);
+      color:var(--fg);
+      font: 14px/1.45 ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      letter-spacing:.2px;
+    }
+    .container{ max-width:1200px; margin:28px auto 80px; padding:0 16px; }
+    h1{ font-size:28px; margin:0 0 10px; font-weight:800; letter-spacing:.3px; }
+    .grid{ display:grid; grid-template-columns:1.1fr .9fr; gap:20px; }
+    @media (max-width: 980px){ .grid{ grid-template-columns:1fr; } }
+    .card{
+      position:relative; background:linear-gradient(180deg, rgba(18,26,48,.9), rgba(13,19,38,.85));
+      border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px;
+    }
+    .card h2{ margin:2px 0 12px; font-size:18px; letter-spacing:.2px; }
+    .row{ display:grid; grid-template-columns:repeat(12,1fr); gap:10px; margin-bottom:10px; }
+    .row.spaced{ gap:18px; }
+    .row .field{ grid-column: span 3; }
+    .row .field.w2{ grid-column: span 2; }
+    .row .field.w3{ grid-column: span 3; }
+    .row .field.w4{ grid-column: span 4; }
+    .row .field.w5{ grid-column: span 5; }
+    .row .field.w6{ grid-column: span 6; }
+    .row .field.w8{ grid-column: span 8; }
+    .row .field.note-right{ grid-column: 5 / 9; }
+    .field label{ display:block; font-size:12px; color:var(--muted); margin:2px 0 6px; min-height:32px; line-height:1.15; }
+    .field input,.field select,.field textarea{
+      width:100%; background:#0a142a; color:#e2e8f0; border:1px solid var(--border);
+      border-radius:12px; padding:10px 12px; outline:none; transition:.2s border;
+    }
+    input[type="date"], input[type="time"], input[type="month"]{ padding-right:0; }
+    .field input::placeholder{ color:#6b7280 }
+    .field input:focus,.field select:focus,.field textarea:focus{ border-color:#3756ff; }
+    .btns{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px }
+    button, .btn{
+      background:linear-gradient(180deg, #1b2b4d, #162441); color:#e6f0ff; border:1px solid #20325a;
+      padding:9px 12px; border-radius:12px; cursor:pointer; font-weight:600;
+      transition: .15s transform, .15s opacity, .15s background;
+    }
+    button:hover{ transform:translateY(-1px) }
+    .btn-accent{ background:linear-gradient(180deg, #2563eb, #1d4ed8); border-color:#1e40af; }
+    .btn-green{ background:linear-gradient(180deg, #10b981, #059669); border-color:#047857; }
+    .btn-outline{ background:#0b1222; border-color:#2d3b60; color:var(--fg) }
+    .btn-danger{ background:linear-gradient(180deg, #ef4444, #dc2626); border-color:#b91c1c; }
+    .btn-warning{ background:linear-gradient(180deg, #f59e0b, #d97706); border-color:#b45309; }
+    .right{ text-align:right }
+    .summary{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:12px 0 6px; }
+    .summary .item{
+      background:linear-gradient(180deg, #0d1936, #0b1630); border:1px solid var(--border);
+      border-radius:14px; padding:10px 12px;
+    }
+    .summary .k{ color:var(--muted); font-size:12px }
+    .summary .v{ font-weight:800; font-size:16px; margin-top:2px }
+    .table-wrap{ margin-top:14px }
+    table{ width:100%; border-collapse: collapse; }
+    th, td{ border-bottom:1px solid #1a2644; padding:10px 8px; text-align:left; vertical-align:middle; white-space:nowrap; }
+    thead th{ color:var(--muted); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.5px }
+    tbody tr:hover{ background:#0c1530 }
+    .pill{ padding:4px 8px; border-radius:999px; background:#142448; display:inline-block; border:1px solid #20325a; font-size:12px; }
+    .foot-note{ color:var(--muted); font-size:12px; margin-top:8px }
+    .spacer{ height:6px }
+    .actions-row{ display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:8px }
+    .left-actions{ display:flex; gap:8px; flex-wrap:wrap }
+    .hide{ display:none }
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator,
+    input[type="month"]::-webkit-calendar-picker-indicator,
+    input[type="week"]::-webkit-calendar-picker-indicator{
+      filter: invert(75%) sepia(26%) saturate(932%) hue-rotate(179deg) brightness(105%) contrast(102%);
+      opacity: 1; cursor: pointer;
+    }
+    .with-icon{ position:relative; display:block; }
+    .with-icon > input{ width:100%; padding-right:48px; }
+    .with-icon .icon-btn{
+      position:absolute; right:12px; top:50%; transform:translateY(-50%);
+      width:20px; height:20px; border:none; padding:0; margin:0;
+      background: var(--accent);
+      -webkit-mask-size: contain; mask-size: contain;
+      -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+      -webkit-mask-position: center; mask-position: center;
+      cursor:pointer; opacity:.95;
+    }
+    .with-icon .icon-btn:hover{ opacity:1 }
+    .with-icon .icon-btn.calendar{
+      -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1Zm12 8H5v9h14v-9ZM5 8h14V6H5v2Z"/></svg>');
+      mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1Zm12 8H5v9h14v-9ZM5 8h14V6H5v2Z"/></svg>');
+    }
+    .with-icon .icon-btn.clock{
+      -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 11h4a1 1 0 1 1 0 2h-5a1 1 0 0 1-1-1V7a1 1 0 1 1 2 0v6Z"/></svg>');
+      mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 11h4a1 1 0  1 1 0 2h-5a1 1 0 0 1-1-1V7a1 1 0 1 1 2 0v6Z"/></svg>');
+    }
+    .with-icon .icon-btn.refresh{
+      -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M12 4a8 8 0 1 0 7.45 5.11 1 1 0 1 1 1.9-.62A10 10 0 1 1 12 2v2Zm-1 1a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0V7.41l-2.3 2.3a1 1 0 0 1-1.4-1.42L15.6 6H12a1 1 0 0 1-1-1Z"/></svg>');
+      mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M12 4a8 8 0 1 0 7.45 5.11 1 1 0 1 1 1.9-.62A10 10 0 1 1 12 2v2Zm-1 1a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0V7.41l-2.3 2.3a1 1 0 0 1-1.4-1.42L15.6 6H12a1 1 0 0 1-1-1Z"/></svg>');
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator,
+    input[type="month"]::-webkit-calendar-picker-indicator,
+    input[type="week"]::-webkit-calendar-picker-indicator{ opacity:0; }
+    .top-right-field{ position:absolute; top:10px; right:12px; width:130px; }
+    .top-right-field label{ text-align:right; display:block; margin-right:2px; }
+    @media (max-width: 980px){
+      .top-right-field{ position:static; width:100%; }
+      .top-right-field label{ text-align:left; }
+    }
+    /* Teljes keresett összeg mező megjelenés */
+    #sumTotalField{ color: var(--accent-2); font-weight:800; }
+
+    .summary .item .v#weekBadge{ font-size:14px; font-weight:700; opacity:.95 }
+    @media print{
+      body{ background:#fff; color:#000 }
+      .card, .summary .item{ box-shadow:none; background:#fff; border-color:#ddd }
+      .btns, .actions-row, .foot-note{ display:none !important }
+      a{ color:#000 }
+    }
+  
+    /* Heti végösszeg mező színe */
+    #weekTotal{ color: var(--accent-2); font-weight:800; }
+
+    /* Kifizetve jelzés a Heti végösszeg dobozban */
+    #weekTotalItem{ position:relative; padding-right:56px; cursor:pointer; }
+    #weekTotalItem.paid::after{
+      content:"✓";
+      position:absolute; right:12px; top:6px;
+      font-size:36px; font-weight:900; line-height:1;
+      color: var(--accent-2);
+      text-shadow: 0 2px 6px rgba(0,0,0,.35);
+      opacity:.95;
+    }
+
+
+    /* --- Kifizetve pipa (checkbox) a Heti végösszeg dobozban --- */
+    #weekTotalItem{ position:relative; display:flex; align-items:center; gap:10px; }
+    #weekTotalItem .k{ flex:0 0 auto; }
+    #weekTotalItem .v{ flex:1 1 auto; }
+    #weekTotalItem .paid-toggle{ flex:0 0 auto; display:inline-flex; align-items:center; cursor:pointer; }
+    #weekTotalItem .paid-toggle input{ display:none; }
+    #weekTotalItem .paid-toggle span{
+      width:38px; height:34px; border-radius:8px;
+      border:2px solid var(--border); background:#0b1222;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,.35);
+      display:inline-block; position:relative;
+    }
+    #weekTotalItem .paid-toggle input:checked + span{
+      border-color: var(--accent-2);
+      background: linear-gradient(180deg, rgba(16,185,129,.18), rgba(5,150,105,.12));
+    }
+    #weekTotalItem .paid-toggle input:checked + span::after{
+      content:"✓"; position:absolute; left:50%; top:50%;
+      transform: translate(-50%, -56%);
+      font-size:28px; font-weight:900; line-height:1; color: var(--accent-2);
+      text-shadow:0 2px 6px rgba(0,0,0,.35);
+    }
+
+
+    /* Override: csak egy pipa legyen – tiltsuk a régi nagy pipát */
+    #weekTotalItem.paid::after{ content:none !important; }
+    #weekTotalItem{ padding-right:0 !important; cursor:default; }
+
+
+    /* --- Tabs (Lapfülek) --- */
+    .titlebar{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+    .tabsbar{ display:flex; gap:8px; margin-left:10px; flex-wrap:wrap; min-height:40px; align-items:center; }
+    .tab-btn{
+      padding:8px 12px; border-radius:12px; border:1px solid var(--border);
+      background:#0b1222; color:var(--fg); cursor:pointer; font-weight:600;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,.2);
+    }
+    .tab-btn.active{ border-color:#2ea37a; background:linear-gradient(180deg, rgba(16,185,129,.16), rgba(5,150,105,.08)); color:#b7f7dd; position:relative; }
+    .tab-btn .close{
+      margin-left:8px; font-weight:900; opacity:.65; border:none; background:transparent; cursor:pointer;
+    }
+    .tab-btn:hover .close{ opacity:.95 }
+    .tab-btn .close:hover{ transform:scale(1.05) }
+    .tab-btn.add{ border-style:dashed; opacity:.85; }
+    .tab-btn:hover{ transform: translateY(-1px); }
+
+
+    /* Heti végösszeg: teljes szélesség a gridben */
+    #weekTotalItem{ grid-column: 1 / -1 !important; }
+    #weekTotalItem .v{ flex:1 1 auto; margin-right:16px; min-width:0; }
+
+
+    /* Égkék háttér a teljes oldalnak */
+    body{ background: linear-gradient(180deg, #bfeaff, #87ceeb) !important; }
+
+
+    /* Jobb láthatóság égkék hátteren */
+    h1{ color:#0b1222 !important; text-shadow:0 1px 0 rgba(255,255,255,.35); }
+    .tabsbar .tab-btn{ 
+      background:#0b1222 !important; 
+      color:#eaf2ff !important; 
+      border-color:#20325a !important; 
+    }
+    .tabsbar .tab-btn.active{ 
+      background:linear-gradient(180deg, #111827, #0f172a) !important; 
+      border-color:#0f1a32 !important; 
+      color:#ffffff !important;
+    }
+    .tabsbar .tab-btn .close{ color:#cde2ff !important; }
+    .tabsbar .tab-btn.add{ background:#0b1222 !important; color:#eaf2ff !important; border-style:dashed; }
+
+</style>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0b1222">
+</head>
+<body>
+  <div class="container">
+    <div class="titlebar"><h1>Bér-napló</h1><div id="tabsBar" class="tabsbar"></div></div>
+    <div class="grid">
+      <!-- BAL / ÚJ BEJEGYZÉS -->
+      <section class="card">
+        <h2>Új bejegyzés</h2>
+
+        <div class="row">
+          <div class="field w4">
+            <label for="date">Dátum</label>
+            <div class="with-icon calendar"><input id="date" type="date" /></div>
+          </div>
+
+          <div class="field w2">
+            <label for="type">Típus</label>
+            <select id="type">
+              <option>Munka</option>
+              <option>Szabadság</option>
+              <option>Betegszabadság</option>
+              <option>Ünnepnap</option>
+              <option>Egyéb</option>
+            </select>
+          </div>
+
+          <div class="field w2">
+            <label for="hourly">Órabér (€)</label>
+            <input id="hourly" type="number" min="0" step="0.01" placeholder="pl. 15" />
+          </div>
+
+          <!-- spacer to push the next field to the right edge -->
+          
+
+          <div class="field w4">
+            <label for="hours">Órák (kézi felülírás)</label>
+            <div class="with-icon"><input id="hours" type="number" min="0" step="0.25" value="0" /><button type="button" class="icon-btn refresh" id="hoursSyncBtn" title="Szinkron a számolt órákkal"></button></div>
+          </div>
+        </div>
+
+        <!-- fő kezdés/végzés -->
+        <div class="row">
+          <div class="field w3">
+            <label for="start1">Kezdés 1</label>
+            <div class="with-icon clock"><input id="start1" type="time" step="60" inputmode="numeric" placeholder="08:00" pattern="[0-2]\\d:[0-5]\\d" /></div>
+          </div>
+          <div class="field w3">
+            <label for="end1">Végzés 1</label>
+            <div class="with-icon clock"><input id="end1" type="time" step="60" inputmode="numeric" placeholder="16:30" pattern="[0-2]\\d:[0-5]\\d" /></div>
+          </div>
+        </div>
+
+        <!-- opcionális második szakasz: külön sorban -->
+        <div class="row">
+          <div class="field w3">
+            <label for="start2">Kezdés 2 (opcionális)</label>
+            <div class="with-icon clock"><input id="start2" type="time" step="60" inputmode="numeric" placeholder="17:00" pattern="[0-2]\\d:[0-5]\\d" /></div>
+          </div>
+          <div class="field w3">
+            <label for="end2">Végzés 2 (opcionális)</label>
+            <div class="with-icon clock"><input id="end2" type="time" step="60" inputmode="numeric" placeholder="20:00" pattern="[0-2]\\d:[0-5]\\d" /></div>
+          </div>
+        </div>
+
+        <div class="row spaced">
+          <div class="field w2">
+            <label for="delta">Összeg (€) – bónusz/levonásnál</label>
+            <input id="delta" type="number" step="0.01" value="0" />
+          </div>
+          <div class="field w6 note-right">
+            <label for="note">Megjegyzés</label>
+            <input id="note" type="text" placeholder="pl. délelőtt & délután" />
+          </div>
+          <div class="field w4 right">
+            <label>&nbsp;</label>
+            <div style="display:flex; gap:8px; justify-content:flex-end;">
+              <button class="btn-accent" id="addBtn">+ Hozzáadás</button>
+              <button class="btn-outline hide" id="cancelEditBtn">Mégse</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="btns">
+          <button class="btn-green" id="saveHourly">Órabér mentése</button>
+          <button class="btn-danger" id="clearAll">NAPLÓ törlése</button>
+        </div>
+      </section>
+
+      <!-- JOBB / SZŰRÉS + ÖSSZESÍTŐ -->
+      <section class="card">
+        <h2>Szűrés és összesítő</h2>
+        <div class="row">
+          <div class="field w4">
+            <label for="month">Hónap</label>
+            <div class="with-icon calendar"><input id="month" type="month" /></div>
+          </div>
+          <div class="field w4">
+            <label for="weekSelect">Hét (kiválasztott hónapból)</label>
+            <select id="weekSelect"></select>
+          </div>
+          <div class="field w4 top-right-field">
+            <label for="sumTotalField">Teljes keresett összeg</label>
+            <input id="sumTotalField" type="text" readonly />
+          </div>
+        </div>
+
+        <div class="summary" id="summary">
+          <div class="item" style="grid-column:span 2">
+            <div class="k">Aktuális hét</div>
+            <div class="v" id="weekBadge">—</div>
+          </div>
+          <div class="item"><div class="k">Heti óraszám</div><div class="v" id="weekHours">0.00 h</div></div>
+          <div class="item"><div class="k">Heti munkabér</div><div class="v" id="weekWage">0,00 €</div></div>
+          <div class="item"><div class="k">Heti bónuszok</div><div class="v" id="weekBonus">0,00 €</div></div>
+          <div class="item"><div class="k">Heti levonások</div><div class="v" id="weekDeduct">0,00 €</div></div>
+          <div class="item" id="weekTotalItem"><div class="k">Heti végösszeg</div><div class="v" id="weekTotal">0,00 €</div><label class="paid-toggle" title="Kifizetve"><input id="weekPaidToggle" type="checkbox" /><span aria-hidden="true"></span></label></div>
+        </div>
+
+        <div class="actions-row">
+          <div class="left-actions">
+            <button class="btn-outline" id="exportCsv">Export CSV</button>
+            <button id="exportPdfBtn" class="btn-outline" type="button" onclick="window.print()">Export PDF</button>
+<label class="btn-outline" style="padding:9px 12px; cursor:pointer">
+              Import CSV
+              <input id="importCsv" type="file" accept=".csv" class="hide" />
+            </label>
+          </div>
+          <div>
+            <button class="btn" id="printBtn">Nyomtatás</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="card table-wrap">
+      <h2>Napló tételek</h2>
+      <div class="spacer"></div>
+      <div class="foot-note">Az adatok helyben tárolódnak (localStorage), nem mennek internetre.</div>
+      <table id="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Dátum</th>
+            <th>Nap</th>
+            <th>Típus</th>
+            <th>Órák</th>
+            <th>Órabér</th>
+            <th>Összeg (€)</th>
+            <th>Megjegyzés</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </div>
+
+  <script>
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+    // Elements
+    const dateEl = $('#date');
+    const typeEl = $('#type');
+    const hourlyEl = $('#hourly');
+    const hoursEl = $('#hours');
+    const start1El = $('#start1');
+    const end1El = $('#end1');
+    const start2El = $('#start2');
+    const end2El = $('#end2');
+    const deltaEl = $('#delta');
+    const noteEl = $('#note');
+    const addBtn = $('#addBtn');
+    const cancelEditBtn = $('#cancelEditBtn');
+    const saveHourlyBtn = $('#saveHourly');
+    const clearAllBtn = $('#clearAll');
+    const monthEl = $('#month');
+    const weekSelectEl = $('#weekSelect');
+    const sumTotalField = $('#sumTotalField');
+    const weekHoursEl = $('#weekHours');
+    const weekWageEl = $('#weekWage');
+    const weekBonusEl = $('#weekBonus');
+    const weekDeductEl = $('#weekDeduct');
+    const weekTotalEl = $('#weekTotal');
+    const weekBadgeEl = $('#weekBadge');
+    const tableBody = $('#table tbody');
+    const exportBtn = $('#exportCsv');
+    const importInput = $('#importCsv');
+    const printBtn = $('#printBtn');
+
+    // State
+    let editingId = null;
+    let manualHoursEdited = false;
+
+    // Helpers
+    function toNum(v){ const n = Number(v); return Number.isFinite(n) ? n : 0; }
+    function monthFromDateStr(dateStr){ return dateStr ? dateStr.slice(0,7) : monthStr(); }
+    function monthEndDay(year, month){ return new Date(year, month, 0).getDate(); }
+    
+    function monthWeekRanges(monthStrVal){
+      // Create Monday-aligned weeks that cover the whole selected month.
+      const [yS, mS] = (monthStrVal || monthStr()).split('-');
+      const y = parseInt(yS, 10);
+      const m = parseInt(mS, 10);
+      const first = new Date(`${y}-${String(m).padStart(2,'0')}-01T00:00:00`);
+      const last  = new Date(y, m, 0); // last day of month
+      // Start of week (Monday) for 'first'
+      const firstDow = (first.getDay() + 6) % 7; // 0=Mon ... 6=Sun
+      const start = new Date(first); start.setDate(first.getDate() - firstDow);
+      const ranges = [];
+      let cur = new Date(start);
+      while (cur <= last){
+        const s = dateToStr(cur);
+        const e = dateToStr(new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 7)); // [s, e)
+        ranges.push([s, e]);
+        cur.setDate(cur.getDate() + 7);
+      }
+      return ranges;
+    }
+
+    
+    function populateWeekSelect(){
+      const ranges = monthWeekRanges(monthEl.value || monthStr());
+      weekSelectEl.innerHTML='';
+      ranges.forEach((r, idx)=>{
+        const [s,e] = r;
+        const from = fmtDateHu(s);
+        const to   = fmtDateHu(addDaysStr(s, 6)); // show full Mon–Sun
+        const opt = document.createElement('option');
+        opt.value = s + '|' + e;
+        opt.textContent = `${idx+1}. hét (${from} – ${to})`;
+        weekSelectEl.appendChild(opt);
+      });
+      // preselect: if dateEl falls into a range, use that; else try today
+      const chosen = dateEl.value || todayStr();
+      const found = ranges.findIndex(([s,e]) => chosen >= s && chosen < e);
+      weekSelectEl.selectedIndex = found >= 0 ? found : 0;
+    }
+    
+    function fmtDateHu(isoStr){
+      if(!isoStr) return '';
+      const d = new Date(isoStr + 'T00:00:00');
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const day = String(d.getDate()).padStart(2,'0');
+      return `${y}. ${m}. ${day}`;
+    }
+    function dateToStr(d){
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${dd}`;
+    }
+    function addDaysStr(isoDateStr, days){
+      const d = new Date(isoDateStr + 'T00:00:00');
+      d.setDate(d.getDate() + days);
+      return dateToStr(d);
+    }
+    const HUN_DAYS = ['vasárnap','hétfő','kedd','szerda','csütörtök','péntek','szombat'];
+    const fmtCurrency = v => (v||0).toLocaleString('hu-HU',{style:'currency', currency:'EUR'});
+    const fmtNum = v => (Math.round((v||0)*100)/100).toFixed(2);
+    const todayStr = () => {
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+    const monthStr = () => {
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      return `${yyyy}-${mm}`;
+    };
+    function timeToMinutes(t){
+      if(!t) return null;
+      const [h,m] = t.split(':').map(Number);
+      return h*60+m;
+    }
+    function minutesDiff(a,b){
+      if(a==null || b==null) return 0;
+      if(b < a) b += 24*60; // across midnight
+      return Math.max(0, b-a);
+    }
+
+    function normalizeTimeString(raw){
+      if(!raw) return '';
+      let v = String(raw).trim();
+      if(/^\d{1,2}:\d{1,2}$/.test(v)){
+        let [hh, mm] = v.split(':').map(n=>parseInt(n,10)||0);
+        hh = Math.min(23, Math.max(0, hh));
+        mm = Math.min(59, Math.max(0, mm));
+        return String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0');
+      }
+      v = v.replace(/\D/g,'');
+      if(v.length===0) return '';
+      if(v.length===1) return '0' + v + ':00';
+      if(v.length===2) return v + ':00';
+      if(v.length===3) v = '0' + v;
+      if(v.length>4) v = v.slice(0,4);
+      let hh = parseInt(v.slice(0,2),10);
+      let mm = parseInt(v.slice(2,4),10);
+      hh = Math.min(23, Math.max(0, hh));
+      mm = Math.min(59, Math.max(0, mm));
+      return String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0');
+    }
+
+    function enableManualTimeTyping(inputs){
+      inputs.forEach(el => {
+        if(!el) return;
+        el.addEventListener('input', (e) => {
+          const t = e.target;
+          const digits = t.value.replace(/\D/g,'');
+          if(digits.length===3 || digits.length===4){
+            t.value = normalizeTimeString(digits);
+          }
+        });
+        el.addEventListener('blur', (e)=>{
+          const t = e.target;
+          if(t.value) t.value = normalizeTimeString(t.value);
+        });
+      });
+    }
+
+    function computedHoursFromTimes(){
+      const toMin = (t)=>{
+        if(!t) return null;
+        const [h,m] = t.split(':').map(Number);
+        return h*60 + m;
+      };
+      const diff = (a,b)=>{
+        if(a==null || b==null) return 0;
+        if(b < a) b += 24*60;
+        return Math.max(0, b-a);
+      };
+      const m = diff(toMin(start1El.value), toMin(end1El.value)) + diff(toMin(start2El.value), toMin(end2El.value));
+      return m/60;
+    }
+
+    function syncHoursField(force=false){
+      const comp = computedHoursFromTimes();
+      if(force || !manualHoursEdited || hoursEl.value === '' || hoursEl.value === '0'){
+        const h = (Number.isFinite(comp) && comp>0) ? comp : (parseFloat(hoursEl.value)||0);
+        hoursEl.value = (Math.round(h*100)/100).toFixed(2);
+      }
+    }
+
+    function normalizeTimeString(raw){
+      if(!raw) return '';
+      let v = String(raw).trim();
+      // already looks like HH:MM
+      if(/^\d{1,2}:\d{1,2}$/.test(v)){
+        let [hh, mm] = v.split(':').map(n=>parseInt(n,10)||0);
+        hh = Math.min(23, Math.max(0, hh));
+        mm = Math.min(59, Math.max(0, mm));
+        return String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0');
+      }
+      // digits only like "800" or "0730" or "8"
+      v = v.replace(/\D/g,'');
+      if(v.length===0) return '';
+      if(v.length===1) return '0' + v + ':00';
+      if(v.length===2) return v + ':00';
+      if(v.length===3) v = '0' + v;
+      if(v.length>4) v = v.slice(0,4);
+      let hh = parseInt(v.slice(0,2),10);
+      let mm = parseInt(v.slice(2,4),10);
+      hh = Math.min(23, Math.max(0, hh));
+      mm = Math.min(59, Math.max(0, mm));
+      return String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0');
+    }
+
+    function enableManualTimeTyping(inputs){
+      inputs.forEach(el => {
+        if(!el) return;
+        // Allow free typing, then normalize on blur or when pattern matches
+        el.addEventListener('input', (e) => {
+          const t = e.target;
+          const v = t.value;
+          // if user typed digits-only 3-4 chars, auto-format
+          const digits = v.replace(/\\D/g,'');
+          if(digits.length===3 || digits.length===4){
+            const norm = normalizeTimeString(digits);
+            if(norm){ t.value = norm; }
+          }
+        });
+        el.addEventListener('blur', (e)=>{
+          const t = e.target;
+          if(t.value) t.value = normalizeTimeString(t.value);
+        });
+        // Enter key moves to next time field
+        el.addEventListener('keydown', (e)=>{
+          if(e.key === 'Enter'){
+            e.preventDefault();
+            const order = [start1El, end1El, start2El, end2El];
+            const idx = order.indexOf(el);
+            const next = order[idx+1] || hoursEl;
+            if(next) next.focus();
+          }
+        });
+      });
+    }
+
+    // Storage
+    let KEY = 'berNaploV2';
+    let KEY_RATE = 'berNaploRate';
+    let entries = JSON.parse(localStorage.getItem(KEY) || '[]');
+
+    function saveEntries(){
+      localStorage.setItem(KEY, JSON.stringify(entries));
+      render();
+    }
+    function loadRate(){
+      const r = localStorage.getItem(KEY_RATE);
+      if(r) hourlyEl.value = r;
+    }
+
+    function render(){
+      const month = monthEl.value || monthStr();
+      const filtered = entries.filter(e => e.date.startsWith(month));
+
+      // Fill table
+      tableBody.innerHTML='';
+      filtered
+        .sort((a,b) => a.date.localeCompare(b.date) || a.id - b.id)
+        .forEach((e,idx) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${idx+1}</td>
+            <td><span class="pill">${e.date}</span></td>
+            <td>${e.day}</td>
+            <td>${e.type}</td>
+            <td>${fmtNum(e.hours)}</td>
+            <td>${e.hourly ? fmtCurrency(e.hourly) : '-'}</td>
+            <td>${fmtCurrency(e.amount)}</td>
+            <td>${e.note || ''}</td>
+            <td style="display:flex; gap:6px">
+              <button data-id="${e.id}" class="btn-outline btn-sm edit">✏️</button>
+              <button data-id="${e.id}" class="btn-outline btn-sm del">🗑</button>
+            </td>
+          `;
+          tableBody.appendChild(tr);
+        });
+
+      // Weekly summary based on selector
+      const ranges = monthWeekRanges(monthEl ? monthEl.value : monthStr());
+      let wStart, wEnd, wLabelIdx = 0;
+      if (weekSelectEl && weekSelectEl.value){
+        const [s,e] = weekSelectEl.value.split("|");
+        wStart = s; wEnd = e; wLabelIdx = weekSelectEl.selectedIndex + 1;
+      } else {
+        wStart = ranges[0][0]; wEnd = ranges[0][1]; wLabelIdx = 1;
+      }
+      let wHours = 0, wWage = 0, wBonus = 0, wDeduct = 0;
+      entries.forEach(e => {
+        if (e.date >= wStart && e.date < wEnd){
+          const w = (e.hours||0) * (e.hourly||0);
+          const dlt = (e.amount||0) - w;
+          wHours += (e.hours||0);
+          wWage  += w;
+          if (dlt > 0) wBonus += dlt; else wDeduct += dlt;
+        }
+      });
+      const wTotal = wWage + wBonus + wDeduct;
+      if (weekHoursEl) weekHoursEl.textContent = `${fmtNum(wHours)} h`;
+      if (weekWageEl) weekWageEl.textContent = fmtCurrency(wWage);
+      if (weekBonusEl) weekBonusEl.textContent = fmtCurrency(wBonus);
+      if (weekDeductEl) weekDeductEl.textContent = fmtCurrency(wDeduct);
+      if (weekTotalEl) weekTotalEl.textContent = fmtCurrency(wTotal);
+      if (weekBadgeEl){
+        const [y,m] = (monthEl && monthEl.value ? monthEl.value.split("-") : [new Date().getFullYear(), String(new Date().getMonth()+1).padStart(2,"0")]);
+        weekBadgeEl.textContent = `${y}.${m} • ${wLabelIdx}. hét (${fmtDateHu(wStart)} – ${fmtDateHu(addDaysStr(wStart, 6))})`;
+      }
+
+      // Global totals (all months)
+      let wageAll = 0, bonusAll = 0, deductAll = 0;
+      entries.forEach(e => {
+        const hours = toNum(e.hours);
+        const hourly = toNum(e.hourly);
+        const amount = toNum(e.amount);
+        const w = hours * hourly;
+        const d = amount - w;
+        wageAll += w;
+        if (d > 0) bonusAll += d; else deductAll += d;
+      });
+      const totalAll = wageAll + bonusAll + deductAll;
+      if (sumTotalField) sumTotalField.value = fmtCurrency(totalAll);
+
+      // Hook row buttons
+      $$('#table tbody button.del').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = Number(btn.getAttribute('data-id'));
+          entries = entries.filter(e => e.id !== id);
+          saveEntries();
+          if (editingId === id) resetEditMode();
+        });
+      });
+      $$('#table tbody button.edit').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = Number(btn.getAttribute('data-id'));
+          startEdit(id);
+        });
+      });
+    }
+
+    function resetFormFields(){
+      hoursEl.value = '0';
+      start1El.value = end1El.value = start2El.value = end2El.value = '';
+      deltaEl.value = '0';
+      noteEl.value = '';
+    }
+
+    function startEdit(id){
+      const e = entries.find(x => x.id === id);
+      if(!e) return;
+      editingId = id;
+      dateEl.value = e.date;
+      typeEl.value = e.type;
+      hourlyEl.value = e.hourly || '';
+      hoursEl.value = fmtNum(e.hours);
+      deltaEl.value = ((e.amount||0) - (e.hours||0)*(e.hourly||0)).toFixed(2);
+      noteEl.value = e.note || '';
+      addBtn.textContent = 'Mentés';
+      addBtn.classList.remove('btn-accent'); addBtn.classList.add('btn-warning');
+      cancelEditBtn.classList.remove('hide');
+      manualHoursEdited = false;
+      syncHoursField(true);
+      noteEl.focus();
+    }
+
+    function resetEditMode(){
+      editingId = null;
+      addBtn.textContent = '+ Hozzáadás';
+      addBtn.classList.remove('btn-warning'); addBtn.classList.add('btn-accent');
+      cancelEditBtn.classList.add('hide');
+      resetFormFields();
+    }
+
+    function addOrUpdateEntry(){
+      const date = dateEl.value;
+      if(!date){ alert('Adj meg dátumot!'); return; }
+
+      // óra mező értéke (auto-számolt vagy kézi):
+      let hours = parseFloat(hoursEl.value || '0');
+      if(!Number.isFinite(hours) || hours < 0) hours = 0;
+
+      const hourly = parseFloat(hourlyEl.value || localStorage.getItem(KEY_RATE) || '0');
+      const delta = parseFloat(deltaEl.value || '0');
+      const type = typeEl.value;
+      const note = noteEl.value.trim();
+
+      const d = new Date(date + 'T00:00:00');
+      const day = HUN_DAYS[d.getDay()];
+
+      const wage = hours * (hourly || 0);
+      const amount = wage + (delta || 0);
+
+      if (editingId != null){
+        entries = entries.map(e => e.id === editingId ? ({ ...e, date, day, type, hours, hourly, amount, note, breakMin: e.breakMin ?? 0 }) : e);
+        saveEntries();
+        resetEditMode();
+        return;
+      }
+
+      const id = Date.now() + Math.random();
+      const entry = { id, date, day, type, hours, hourly, amount, note, breakMin: 0 };
+      if (monthEl && date){ monthEl.value = monthFromDateStr(date); }
+      populateWeekSelect();
+      const ranges = monthWeekRanges(monthEl ? monthEl.value : monthStr());
+      if (Array.isArray(ranges) && ranges.length && weekSelectEl){
+        const idx = ranges.findIndex(([s,e]) => date >= s && date < e);
+        weekSelectEl.selectedIndex = idx >= 0 ? idx : 0;
+      }
+      entries.push(entry);
+      saveEntries();
+      resetFormFields();
+    }
+
+    // CSV
+    function toCsv(rows){
+      const header = ['id','date','day','type','hours','hourly','amount','note','breakMin'];
+      const escape = s => ('"'+ String(s??'').replaceAll('"','""') + '"');
+      return [header.join(','), ...rows.map(r => header.map(k => escape(r[k] ?? (k==='breakMin'?0:''))).join(','))].join('\\n');
+    }
+    function fromCsv(text){
+      const lines = text.split(/\\r?\\n/).filter(Boolean);
+      if(lines.length<=1) return [];
+      const header = lines[0].split(',').map(s => s.replace(/^"|"$/g,''));
+      const idx = k => header.indexOf(k);
+      const out = [];
+      for(let i=1;i<lines.length;i++){
+        const row = parseCsvLine(lines[i]);
+        const get = (k) => {
+          const j = idx(k);
+          return j >= 0 ? row[j] : '';
+        };
+        const obj = {
+          id: Number(get('id')) || Date.now()+Math.random(),
+          date: get('date') || todayStr(),
+          day: get('day') || '',
+          type: get('type') || 'Munka',
+          hours: Number(get('hours')) || 0,
+          hourly: Number(get('hourly')) || 0,
+          amount: Number(get('amount')) || 0,
+          note: get('note') || '',
+          breakMin: Number(get('breakMin')) || 0
+        };
+        out.push(obj);
+      }
+      return out;
+    }
+    function parseCsvLine(line){
+      const res=[]; let cur=''; let inQ=false;
+      for(let i=0;i<line.length;i++){
+        const ch=line[i];
+        if(inQ){
+          if(ch=='"' && line[i+1]=='"'){ cur+='"'; i++; }
+          else if(ch=='"'){ inQ=false; }
+          else cur+=ch;
+        }else{
+          if(ch==','){ res.push(cur); cur=''; }
+          else if(ch=='"'){ inQ=true; }
+          else cur+=ch;
+        }
+      }
+      res.push(cur);
+      return res;
+    }
+
+    // Events
+    function attachAutoSyncEvents(){
+      const evs = ['input','change','blur'];
+      [start1El,end1El,start2El,end2El].forEach(el => {
+        if(!el) return;
+        evs.forEach(ev => el.addEventListener(ev, ()=>{ syncHoursField(false); }));
+      });
+    }
+    attachAutoSyncEvents();
+    hoursEl.addEventListener('input', ()=>{ manualHoursEdited = true; });
+    const hoursSyncBtn = document.getElementById('hoursSyncBtn');
+    if(hoursSyncBtn){ hoursSyncBtn.addEventListener('click', ()=>{ manualHoursEdited = false; syncHoursField(true); }); }
+
+    addBtn.addEventListener('click', addOrUpdateEntry);
+    cancelEditBtn.addEventListener('click', resetEditMode);
+    saveHourlyBtn.addEventListener('click', ()=>{
+      const v = parseFloat(hourlyEl.value||'0');
+      localStorage.setItem(KEY_RATE, v>0 ? v : '');
+      alert('Órabér elmentve.');
+    });
+    clearAllBtn.addEventListener('click', ()=>{
+      if(confirm('Biztosan törlöd a teljes naplót?')){
+        entries = [];
+        saveEntries();
+        resetEditMode();
+      }
+    });
+    monthEl.addEventListener('input', ()=>{ populateWeekSelect(); render(); });
+    monthEl.addEventListener('change', ()=>{ populateWeekSelect(); render(); });
+    weekSelectEl.addEventListener('input', render);
+    weekSelectEl.addEventListener('change', render);
+
+    exportBtn.addEventListener('click', ()=>{
+      const csv = toCsv(entries);
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'ber-naplo.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    importInput.addEventListener('change', async (e)=>{
+      const f = e.target.files?.[0];
+      if(!f) return;
+      const text = await f.text();
+      const rows = fromCsv(text);
+      if(rows.length){
+        entries = [...entries, ...rows];
+        saveEntries();
+      }else{
+        alert('Nem sikerült beolvasni a CSV-t.');
+      }
+      importInput.value = '';
+    });
+
+    printBtn.addEventListener('click', ()=> window.print());
+
+    dateEl.addEventListener('change', ()=>{
+      if (!dateEl.value) return;
+      if (monthEl) monthEl.value = monthFromDateStr(dateEl.value);
+      populateWeekSelect();
+      const ranges = monthWeekRanges(monthEl ? monthEl.value : monthStr());
+      if (Array.isArray(ranges) && ranges.length && weekSelectEl){
+        const idx = ranges.findIndex(([s,e]) => dateEl.value >= s && dateEl.value < e);
+        weekSelectEl.selectedIndex = idx >= 0 ? idx : 0;
+      }
+      render();
+    });
+
+    // Icon buttons (only the icon opens the picker; clicking the input does NOT open it)
+    function attachIconButtons(){
+      document.querySelectorAll('.with-icon').forEach(w => {
+        if (w.querySelector('.icon-btn')) return;
+        const input = w.querySelector('input');
+        const isCal = w.classList.contains('calendar');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'icon-btn ' + (isCal ? 'calendar' : 'clock');
+        btn.setAttribute('aria-label', isCal ? 'Naptár megnyitása' : 'Időválasztó megnyitása');
+        btn.addEventListener('click', (ev) => {
+          ev.preventDefault(); ev.stopPropagation();
+          if (input && typeof input.showPicker === 'function'){ input.showPicker(); setTimeout(()=> syncHoursField(false), 200); }
+          else { input.focus(); input.click(); }
+        });
+        w.appendChild(btn);
+      });
+    }
+
+    function init(){
+      attachIconButtons();
+      manualHoursEdited = false;
+      enableManualTimeTyping([start1El, end1El, start2El, end2El]);
+      dateEl.value = todayStr();
+      monthEl.value = monthStr();
+      populateWeekSelect();
+      loadRate();
+      enableManualTimeTyping([start1El, end1El, start2El, end2El]);
+      attachAutoSyncEvents();
+      syncHoursField(true);
+      render();
+    }
+    init();
+  </script>
+
+
+
+
+<script>
+(function(){
+  const TABS_KEY = 'berNaploTabsV1';
+  const ACTIVE_TAB_KEY = 'berNaploActiveTabV1';
+
+  function loadTabs(){
+    let t = [];
+    try{ t = JSON.parse(localStorage.getItem(TABS_KEY) || '[]'); }catch(e){ t = []; }
+    // Régi "Alap" tab migrálása: ha csak az volt, töröljük
+    if(Array.isArray(t) && t.length===1 && (t[0].id==='alap' || t[0].name==='Alap')){
+      t = [];
+      localStorage.setItem(TABS_KEY, JSON.stringify(t));
+      localStorage.removeItem(ACTIVE_TAB_KEY);
+    }
+    return t;
+  }
+
+  function saveTabs(t){ localStorage.setItem(TABS_KEY, JSON.stringify(t)); }
+
+  function ensureActive(){
+    let tabs = loadTabs();
+    let active = localStorage.getItem(ACTIVE_TAB_KEY) || '';
+    // Ha nincs fül, kérjünk egy nevet és hozzunk létre egyet
+    if(!tabs.length){
+      let name = '';
+      while(!name){
+        name = prompt('Adj nevet az első fülednek (pl. munkáltató neve):', '');
+        if(name === null) break;
+        name = name.trim();
+        if(!name) alert('A név nem lehet üres.');
+      }
+      if(name){
+        const id = 'tab'+Date.now();
+        tabs = [{id, name}];
+        saveTabs(tabs);
+        active = id;
+        localStorage.setItem(ACTIVE_TAB_KEY, active);
+      }
+    }
+    // Ha van fül, de nincs aktív/rossz, válasszuk az elsőt
+    if(tabs.length && (!active || !tabs.some(t=>t.id===active))){
+      active = tabs[0].id;
+      localStorage.setItem(ACTIVE_TAB_KEY, active);
+    }
+    return active || '';
+  }
+
+  window.activeTabId = function(){ return ensureActive(); };
+  window.storagePrefix = function(){
+    const a = ensureActive();
+    return a ? ('tab__'+a+'__') : '';
+  };
+
+  function renderTabsBar(){
+    const bar = document.getElementById('tabsBar');
+    if(!bar) return;
+    const tabs = loadTabs();
+    const active = ensureActive();
+    bar.innerHTML = 
+      tabs.map(t => (
+        '<button class="tab-btn '+(t.id===active?'active':'')+'" data-id="'+t.id+'" title="Dupla katt: átnevezés">'+
+          t.name+'<span class="close" title="Fül törlése" data-del="'+t.id+'">×</span></button>'
+      )).join('')
+      + '<button class="tab-btn add" id="addTabBtn">+</button>';
+
+    bar.onclick = function(e){
+      const delBtn = e.target.closest('.close');
+      if(delBtn){
+        const id = delBtn.getAttribute('data-del');
+        if(confirm('Biztosan törlöd ezt a fület?')){
+          const alsoData = confirm('Töröljük a fül összes tárolt adatát is? (napló, órabér, pipák)');
+          const list = loadTabs().filter(x=>x.id!==id);
+          saveTabs(list);
+          if(localStorage.getItem(ACTIVE_TAB_KEY)===id) localStorage.removeItem(ACTIVE_TAB_KEY);
+          if(alsoData){
+            const pref = 'tab__'+id+'__';
+            const keys = [];
+            for(let i=0;i<localStorage.length;i++){
+              const k = localStorage.key(i);
+              if(k && k.indexOf(pref)===0) keys.push(k);
+            }
+            keys.forEach(k=> localStorage.removeItem(k));
+          }
+          applyTab();
+        }
+        return;
+      }
+      const add = e.target.closest('#addTabBtn');
+      if(add){
+        const name = prompt('Új fül neve:', 'Új munka');
+        if(!name) return;
+        const id = 'tab'+Date.now();
+        const list = loadTabs(); list.push({id, name:name.trim()}); saveTabs(list);
+        localStorage.setItem(ACTIVE_TAB_KEY, id);
+        applyTab();
+        return;
+      }
+      const btn = e.target.closest('.tab-btn[data-id]');
+      if(btn){
+        localStorage.setItem(ACTIVE_TAB_KEY, btn.dataset.id);
+        applyTab();
+      }
+    };
+
+    bar.ondblclick = function(e){
+      const btn = e.target.closest('.tab-btn[data-id]');
+      if(!btn) return;
+      const id = btn.dataset.id;
+      const list = loadTabs();
+      const item = list.find(x=>x.id===id);
+      if(!item) return;
+      const name = prompt('Fül átnevezése:', item.name);
+      if(name && name.trim()){
+        item.name = name.trim();
+        saveTabs(list);
+        renderTabsBar();
+      }
+    };
+  }
+
+  window.applyTab = function(){
+    try{
+      const active = ensureActive();
+      // dinamikus kulcsok
+      if(typeof KEY !== 'undefined'){ KEY = (active ? storagePrefix() : '') + 'berNaploV2'; }
+      if(typeof KEY_RATE !== 'undefined'){ KEY_RATE = (active ? storagePrefix() : '') + 'berNaploRate'; }
+      if(typeof entries !== 'undefined'){
+        try{ entries = JSON.parse(localStorage.getItem(KEY) || '[]'); }catch(e){ entries = []; }
+      }
+      renderTabsBar();
+      if(typeof loadRate === 'function') loadRate();
+      if(typeof render === 'function') render();
+      if(typeof loadPaid === 'function') loadPaid();
+    }catch(err){
+      console && console.warn && console.warn('applyTab error', err);
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', function(){
+    // késleltetve, hogy a fő script már definiálja a globálokat
+    setTimeout(applyTab, 0);
+  });
+})();
+</script>
+
+<script>
+(function(){
+  function weekKey(){
+    var month = document.getElementById('month');
+    var weekSel = document.getElementById('weekSelect');
+    var badge = document.getElementById('weekBadge');
+    var m = month ? (month.value || '').trim() : '';
+    var w = weekSel ? (weekSel.value || '').trim() : ((badge && (badge.textContent||'').trim()) || 'current');
+    return storagePrefix() + 'paid_week_' + m + '_' + w;
+  }
+  function setPaidClass(checked){
+    var item = document.getElementById('weekTotalItem');
+    if(item) item.classList.toggle('paid', !!checked);
+  }
+  function loadPaid(){
+    var cb = document.getElementById('weekPaidToggle');
+    if(!cb) return;
+    var checked = localStorage.getItem(weekKey()) === '1';
+    cb.checked = checked;
+    setPaidClass(checked);
+  }
+  function savePaid(){
+    var cb = document.getElementById('weekPaidToggle');
+    if(!cb) return;
+    localStorage.setItem(weekKey(), cb.checked ? '1' : '0');
+    setPaidClass(cb.checked);
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    var cb = document.getElementById('weekPaidToggle');
+    if(cb){ cb.addEventListener('change', savePaid); }
+    // Respond to week/month selection changes
+    var month = document.getElementById('month');
+    var weekSel = document.getElementById('weekSelect');
+    if(month){ month.addEventListener('change', loadPaid); }
+    if(weekSel){ weekSel.addEventListener('change', loadPaid); }
+    // As a fallback, watch "Aktuális hét" badge too
+    var badge = document.getElementById('weekBadge');
+    if(badge && window.MutationObserver){
+      var mo = new MutationObserver(loadPaid);
+      mo.observe(badge, {childList:true, subtree:true, characterData:true});
+    }
+    // initial
+    loadPaid();
+  });
+})();
+</script>
+
+
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').catch(function(err){
+      console.warn('SW reg error', err);
+    });
+  });
+}
+</script>
+</body>
+</html>
